@@ -6,8 +6,8 @@ class Master extends EventEmitter {
 
   }
 
-  connect(address, employerAddress) {
-    console.log(`Connecting to the master! address: ${address}, employerAddress: ${employerAddress}`);
+  connect(address) {
+    console.log(`Connecting to the master! address: ${address}`);
   }
 }
 

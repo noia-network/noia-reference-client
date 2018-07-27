@@ -9,23 +9,35 @@ const walletProvider = {
   url: 'http://eth.oja.me:3304/dev',
   apiKey: 'MK3M5ni1gTvArFO6FSJh9IVlb0s5BqN8CAFkGq0d'
 }
+const nodeConfig = {
+  ip: '127.0.0.1',
+  wsPort: 7677,
+  // domain: 'noia.oja.me'
+}
 
 class Business extends EventEmitter {
   constructor() {
     super();
-    this.client = new BusinessClient(walletMnemonic, walletProvider);
+    this.client = new BusinessClient(walletMnemonic, walletProvider, nodeConfig);
   }
 
   async start() {
     logger.info(`Starting business!`);
     // console.log(`process.argv: ${JSON.stringify(process.argv)}`);
 
+    // read the network id
+    const networkId = await this.client.getNetworkId();
+
     // read the business aadress in Noia system - if not provided then a new Business is created automatically when first started
-    const businessAddressFilePath = './business-address.txt';
+    const businessAddressFilePath = `./${networkId}-business-address.txt`;
     let noiaBusinessAddress = await this.readAddress(businessAddressFilePath);
 
     // register a business with Noia network
     const registeredBusiness = await this.client.registerBusiness(noiaBusinessAddress);
+    if (!registeredBusiness) {
+      console.log(`Business not Registered in NOIA network`);
+      return;
+    }
     console.log(`Business registered! Business address: ${registeredBusiness.address}`);
 
     // save the business Noia address if different
@@ -42,7 +54,7 @@ class Business extends EventEmitter {
     }
     const action = args[0];
     switch (action) {
-      case 'jobpost': {
+      case 'job': {
         await this.runJobPost(args.slice(1));
         // exit
         await this.client.dispose();

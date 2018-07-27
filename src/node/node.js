@@ -11,8 +11,9 @@ const walletProvider = {
   apiKey: 'MK3M5ni1gTvArFO6FSJh9IVlb0s5BqN8CAFkGq0d'
 }
 const nodeConfig = {
+  ip: '127.0.0.1',
   wsPort: 7676,
-  domain: 'noia.oja.me'
+  // domain: 'noia.oja.me'
 }
 
 class Node extends EventEmitter {
@@ -26,13 +27,20 @@ class Node extends EventEmitter {
   async start() {
     logger.info(`Starting node client!`);
 
+    // read the network id
+    const networkId = await this.client.getNetworkId();
+
     // read the node aadress in Noia system - if not provided then a new Node is created automatically when first started
-    const nodeAddressFilePath = './node-address.txt';
+    const nodeAddressFilePath = `./${networkId}-node-address.txt`;
     let noiaNodeAddress = await this.readAddress(nodeAddressFilePath);
 
     // register a node with Noia network
     const registeredNode = await this.client.registerNode(noiaNodeAddress);
-    console.log(`Node registered! Node address: ${registeredNode.address}`);
+    if (!registeredNode) {
+      console.log(`Node not Registered in NOIA network`);
+      return;
+    }
+    console.log(`Registered Node address: ${registeredNode.address}`);
 
     // save the node Noia address if different
     if (registeredNode.address !== noiaNodeAddress) {
@@ -55,12 +63,17 @@ class Node extends EventEmitter {
         logger.info(`Timeout waiting for the next job! Retrying ...`);
       }
     }
-    console.log(`Job post found! @address: ${jobPost.address}, info: ${JSON.stringify(jobPost.info)}`);
+    console.log(`Job post found! Job @address: ${jobPost.address}, job post info: ${JSON.stringify(jobPost.info)}`);
+
+    // get employer
+    const employerAddress = await jobPost.getEmployerAddress();
+    const employer = await this.client.getBusinessClient(employerAddress);
+    console.log(`Employer! @address: ${employer.address}, employer info: ${JSON.stringify(employer.info)}`);
 
     // connect to master and start listening events
-    const {host, port} = jobPost.info;
-    const masterWsAddress = `ws://${host}:${port}`;
-    this.master.connect(masterWsAddress, jobPost.employerAddress);
+    const {node_ip, node_ws_port} = employer.info;
+    const masterWsAddress = `ws://${node_ip}:${node_ws_port}`;
+    this.master.connect(masterWsAddress);
 
   }
 

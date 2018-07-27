@@ -14,7 +14,7 @@ class NodeClient extends NoiaClient {
     await super.dispose();
     this.registeredNode = null;
     if (this.nextJob) {
-      this.nextJob.poller.stopWatchingJobPostAddedEvents();
+      this.nextJob.watcher.stopWatchingJobPostAddedEvents();
       this.nextJob = null;
     }
   }
@@ -49,6 +49,7 @@ class NodeClient extends NoiaClient {
         return this.registeredNode;
       } else {
         logger.info(`Node with address: ${nodeAddress} is NOT registered in NOIA network!`);
+        return null;
       }
     } else {
       logger.info(`Registering a new node in Noia network! Owner: ${this.walletAddress}`);
@@ -73,11 +74,14 @@ class NodeClient extends NoiaClient {
     // wait till governance layer is ready
     await this._ready();
 
-    // get Node external IP
-    const nodeExternalIP = await this.getNodeExternalIP();
+    // get Node IP
+    let nodeIP = this.nodeConfig.ip;
+    if (!nodeIP) {
+      nodeIP = await this.getNodeExternalIP();
+    }
     const nodeInfo = {
       "interface": "terminal",
-      "node_ip": nodeExternalIP,
+      "node_ip": nodeIP,
       "node_ws_port": this.nodeConfig.wsPort,
       "node_domain": this.nodeConfig.domain
     };
@@ -100,19 +104,22 @@ class NodeClient extends NoiaClient {
   async findNextJob() {
     // get a fresh new base client to pull in the next jobs
     if (!this.nextJob) {
-      // create a new poller
+      // create a new watcher
       this.nextJob = {
-        poller: await sdk.getBaseClient()
+        watcher: await sdk.getBaseClient()
       };
-      const poller = this.nextJob.poller;
+      const watcher = this.nextJob.watcher;
 
       // calculate the fromBlock based on current block
-      const latestBlock = await util.promisify(poller.web3.eth.getBlockNumber)();
-      const fromBlock = latestBlock - 1000;
+      const latestBlock = await util.promisify(watcher.web3.eth.getBlockNumber)();
+      let fromBlock = latestBlock - 1000;
+      if (fromBlock < 0) {
+        fromBlock = 0;
+      }
 
       // start polling
       console.log(`findFirstJob! Start searching a job from block: ${fromBlock}`);
-      await poller.startWatchingJobPostAddedEvents({
+      await watcher.startWatchingJobPostAddedEvents({
         pullMode: true,
         pollingInterval: 1000,
         fromBlock: fromBlock,
@@ -127,9 +134,9 @@ class NodeClient extends NoiaClient {
     }
 
     // resolve it when we find a suitable job post to work on
-    const poller = this.nextJob.poller;
+    const watcher = this.nextJob.watcher;
     return new Promise((resolve, reject) => {
-      poller.on('job_post_added', (eventHandler) => {
+      watcher.on('job_post_added', (eventHandler) => {
         // a function to exit and clear up the resources
         let timeoutId;
         let that = this;
@@ -143,8 +150,8 @@ class NodeClient extends NoiaClient {
           // stop the logs processing loop
           pullNext && pullNext(false);
 
-          // pause the flow
-          that.nextJob.resume = poller.stopWatchingJobPostAddedEvents();
+          // pause the watcher
+          that.nextJob.resume = watcher.stopWatchingJobPostAddedEvents();
 
           // return result
           if (error) {
@@ -186,6 +193,11 @@ class NodeClient extends NoiaClient {
         });
       });
     });
+  }
+
+  async getBusinessClient(address) {
+    await this._ready();
+    return await sdk.getBusinessClient(address);
   }
 }
 

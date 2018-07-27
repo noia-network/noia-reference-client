@@ -51,6 +51,14 @@ class NoiaClient extends EventEmitter {
     });
   }
 
+  async getNetworkId() {
+    // wait till governance layer is ready
+    await this._ready();
+
+    // return the network id
+    return await sdk.getNetworkId();
+  }
+
   async getNodeExternalIP() {
     return new Promise((resolve, reject) => {
       getIP((err, nodeExternalIP) => {

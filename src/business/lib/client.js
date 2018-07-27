@@ -3,8 +3,9 @@ const logger = require('../../common/logger');
 const NoiaClient = require('../../common/noia-client');
 
 class BusinessClient extends NoiaClient {
-  constructor(mnemonic, providerConfig) {
+  constructor(mnemonic, providerConfig, nodeConfig) {
     super(mnemonic, providerConfig);
+    this.nodeConfig = nodeConfig;
   }
 
   async dispose() {
@@ -42,6 +43,7 @@ class BusinessClient extends NoiaClient {
         return this.registeredBusiness;
       } else {
         logger.info(`Business with address: ${businessAddress} is NOT registered in NOIA network!`);
+        return null;
       }
     } else {
       logger.info(`Registering a new business in Noia network! Owner: ${this.walletAddress}`);
@@ -67,7 +69,15 @@ class BusinessClient extends NoiaClient {
     await this._ready();
 
     // and create a new business
-    const businessInfo = {/* business info missing */};
+    let nodeIP = this.nodeConfig.ip;
+    if (!nodeIP) {
+      nodeIP = await this.getNodeExternalIP();
+    }
+    const businessInfo = {
+      "node_ip": nodeIP,
+      "node_ws_port": this.nodeConfig.wsPort,
+      "node_domain": this.nodeConfig.domain
+    };
     logger.info(`Creating new business client in NOIA!`, businessInfo);
     const businessClient = await sdk.createBusinessClient(businessInfo);
     return businessClient;
@@ -92,7 +102,7 @@ class BusinessClient extends NoiaClient {
 
     // create a new job post
     // const businessClient = await sdk.getBusinessClient(this.registeredBusiness.address);
-    const jobPostInfo = { employer_address : this.registeredBusiness.address };
+    const jobPostInfo = {}; // employer_address : this.registeredBusiness.address
     logger.info(`Creating a new job post in Noia network! Job post info: ${JSON.stringify(jobPostInfo)}`);
     const jobPost = await this.registeredBusiness.createJobPost(jobPostInfo);
     logger.info(`Create a new job post in Noia network! Job post address: ${jobPost.address}, info: ${JSON.stringify(jobPost.info)}`);
