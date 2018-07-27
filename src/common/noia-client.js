@@ -2,6 +2,7 @@ const EventEmitter = require("events");
 const extIP = require("external-ip");
 const sdk = require('@noia-network/governance');
 const logger = require('./logger');
+const randombytes = require("randombytes");
 
 class NoiaClient extends EventEmitter {
   constructor(mnemonic, providerConfig) {
@@ -49,6 +50,19 @@ class NoiaClient extends EventEmitter {
         });
       }
     });
+  }
+
+  async signMessage(msg) {
+    await this._ready();
+    const client = await sdk.getBaseClient()
+    const signedMsg = await client.rpcSignMessage(msg);
+    logger.info(`Signed message! Plain: ${msg}, signed: ${signedMsg}`);
+    return signedMsg;
+  }
+
+  getHandshakeMessage() {
+    const msg = randombytes(4).toString("hex");
+    return msg;
   }
 
   async getNetworkId() {

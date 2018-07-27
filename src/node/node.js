@@ -73,7 +73,14 @@ class Node extends EventEmitter {
     // connect to master and start listening events
     const {node_ip, node_ws_port} = employer.info;
     const masterWsAddress = `ws://${node_ip}:${node_ws_port}`;
-    this.master.connect(masterWsAddress);
+    await this.master.connect(masterWsAddress);
+
+    // validate the master - send random string and wait for the signed answer
+    const msg = this.client.getHandshakeMessage();
+    const signedMsg = await this.client.signMessage(msg);
+    const isValid = await this.master.validateEndpoint(msg, signedMsg);
+
+    //
 
   }
 

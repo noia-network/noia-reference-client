@@ -2,6 +2,7 @@ const EventEmitter = require("events");
 const logger = require('../common/logger');
 const {readFile, writeFile} = require('../common/utils');
 const BusinessClient = require('./lib/client');
+const Master = require('./lib/master');
 
 // Node configuration
 const walletMnemonic = 'Heyo sing party done kid carry calm captain state purse weather ozone';
@@ -89,9 +90,10 @@ class Business extends EventEmitter {
   }
 
   async runMaster() {
-    console.log(`Master args: ${JSON.stringify(args)}`);
+    const {ip, wsPort} = nodeConfig;
+    console.log(`Master! nodeConfig: ${JSON.stringify(nodeConfig)}`);
     this.master = new Master();
-    await this.master.start(args.slice(1));
+    await this.master.start(ip, wsPort);
   }
 
   async readAddress(addressFilePath) {
