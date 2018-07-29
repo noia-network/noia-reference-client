@@ -1,16 +1,17 @@
 const EventEmitter = require("events");
 const WebSocket = require("ws");
 const logger = require('../../common/logger');
+const {Handshake, HandshakeError} = require('../../common/wire');
 
 const READY_STATE_CONNECTING = 0;
 const READY_STATE_OPEN = 1;
 const READY_STATE_CLOSING = 2;
 const READY_STATE_CLOSED = 3;
 
-class Master extends EventEmitter {
-  constructor() {
+class Wire extends EventEmitter {
+  constructor(client) {
     super();
-
+    this.client = client;
   }
 
   async connect(address) {
@@ -41,10 +42,14 @@ class Master extends EventEmitter {
       this.emit("connected", this.closed);
     }
 
-    this.conn.on("message", (data) => {
+    this.conn.on("message", async (data) => {
       logger.info(`Incoming node message: `, data);
-      const json = JSON.parse(data);
-      this._handleMessage(json);
+      try {
+        const json = JSON.parse(data);
+        await this._handleMessage(json);
+      } catch (err) {
+        logger.error(`Error while processing incoming message!`, err);
+      }
     })
   }
 
@@ -65,23 +70,31 @@ class Master extends EventEmitter {
     });
   }
 
-  _handleMessage(msg) {
+  async _handleMessage(msg) {
     const action = msg.action;
     switch (action) {
       case 'handshake': {
-
+        await this.onHandshakeWithPeer(msg);
         break;
       }
     }
   }
 
-  async validateEndpoint(hsMsg, signedMsg) {
+  async onHandshakeWithPeer(msg) {
+    const status = msg.status;
+    if (status === Handshake.REFUSED) {
+      // peer did not validate our signature that we sent
+      return this.emit('handshake', new HandshakeError(msg.reason));
+    }
+    this.emit("handshake", msg);
+  }
+
+  async validatePeers() {
     await this._connected();
 
-    // start listening response
-
-
-    // send
+    // first, send node validation request to master
+    const hsMsg = this.client.getHandshakeMessage();
+    const signedMsg = await this.client.signMessage(hsMsg);
     const msg = {
       action: 'handshake',
       msg: hsMsg,
@@ -89,8 +102,22 @@ class Master extends EventEmitter {
     };
     this.conn.send(JSON.stringify(msg));
 
-    // wait for response
+    // wait for master validation result
+    return new Promise((resolve, reject) => {
+      this.once("handshake", async (msg) => {
+        // check if master failed validating us - a node
+        if (msg instanceof HandshakeError) {
+          return reject(msg.message);
+        }
 
+        // now, validate the master - a validation request it sent to us
+        const {msg: fromHsMsg, signedMsg: fromHsSignedMsg} = msg;
+        const fromSignerAddress = await this.client.recoverAddress(fromHsMsg, fromHsSignedMsg);
+        logger.info(`[Node] From Signer address: ${fromSignerAddress}`);
+
+        resolve(msg);
+      });
+    });
   }
 
   async nextMessage() {
@@ -105,4 +132,4 @@ class Master extends EventEmitter {
   }
 }
 
-module.exports = Master;
+module.exports = Wire;

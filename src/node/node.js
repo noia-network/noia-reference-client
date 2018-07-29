@@ -2,12 +2,13 @@ const EventEmitter = require("events");
 const logger = require('../common/logger');
 const {readFile, writeFile, TimeoutError} = require('../common/utils');
 const NodeClient = require('./lib/client');
-const Master = require('./lib/master');
+const Wire = require('./lib/wire');
 
 // Node configuration
 const walletMnemonic = 'ill song party come kid carry calm captain state purse weather ozone';
 const walletProvider = {
-  url: 'http://eth.oja.me:3304/dev',
+  // url: 'http://eth.oja.me:3304/dev',
+  url: 'http://eth.oja.me:3304/',
   apiKey: 'MK3M5ni1gTvArFO6FSJh9IVlb0s5BqN8CAFkGq0d'
 }
 const nodeConfig = {
@@ -19,9 +20,8 @@ const nodeConfig = {
 class Node extends EventEmitter {
   constructor() {
     super();
-
-    this.master = new Master();
     this.client = new NodeClient(walletMnemonic, walletProvider, nodeConfig);
+    this.wire = new Wire(this.client);
   }
 
   async start() {
@@ -53,35 +53,38 @@ class Node extends EventEmitter {
     let jobPost;
     while (true) {
       try {
+        console.log(`Waiting for next job!`);
         jobPost = await this.client.findNextJob();
+
+        console.log(`Job post found! Job @address: ${jobPost.address}, job post info: ${JSON.stringify(jobPost.info)}`);
+
+        // get employer
+        const employerAddress = await jobPost.getEmployerAddress();
+        const employer = await this.client.getBusinessClient(employerAddress);
+        console.log(`Employer! @address: ${employer.address}, employer info: ${JSON.stringify(employer.info)}`);
+
+        // connect to master
+        const {node_ip, node_ws_port} = employer.info;
+        const masterWsAddress = `ws://${node_ip}:${node_ws_port}`;
+        await this.wire.connect(masterWsAddress);
+
+        // validate the peers - master validates node and vice versa
+        const allValid = await this.wire.validatePeers(employer.address);
+
+        //
+
         break;
       } catch (err) {
         if (!(err instanceof TimeoutError)) {
           // if not timeout then rethrow
-          throw err;
+          logger.error(`Error!`, err);
+          console.log(err);
+          // throw err;
+        } else {
+          logger.info(`Timeout waiting for the next job! Retrying ...`);
         }
-        logger.info(`Timeout waiting for the next job! Retrying ...`);
       }
     }
-    console.log(`Job post found! Job @address: ${jobPost.address}, job post info: ${JSON.stringify(jobPost.info)}`);
-
-    // get employer
-    const employerAddress = await jobPost.getEmployerAddress();
-    const employer = await this.client.getBusinessClient(employerAddress);
-    console.log(`Employer! @address: ${employer.address}, employer info: ${JSON.stringify(employer.info)}`);
-
-    // connect to master and start listening events
-    const {node_ip, node_ws_port} = employer.info;
-    const masterWsAddress = `ws://${node_ip}:${node_ws_port}`;
-    await this.master.connect(masterWsAddress);
-
-    // validate the master - send random string and wait for the signed answer
-    const msg = this.client.getHandshakeMessage();
-    const signedMsg = await this.client.signMessage(msg);
-    const isValid = await this.master.validateEndpoint(msg, signedMsg);
-
-    //
-
   }
 
   async readAddress(addressFilePath) {

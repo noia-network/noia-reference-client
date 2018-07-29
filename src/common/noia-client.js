@@ -54,15 +54,25 @@ class NoiaClient extends EventEmitter {
 
   async signMessage(msg) {
     await this._ready();
-    const client = await sdk.getBaseClient()
+    const client = await sdk.getBaseClient();
     const signedMsg = await client.rpcSignMessage(msg);
     logger.info(`Signed message! Plain: ${msg}, signed: ${signedMsg}`);
     return signedMsg;
   }
 
+  recoverAddress(msg, msgSigned) {
+    const signerAddress = sdk.recoverAddressFromRpcSignedMessage(msg, msgSigned);
+    return signerAddress;
+  }
+
   getHandshakeMessage() {
     const msg = randombytes(4).toString("hex");
     return msg;
+  }
+
+  async isSignedByAddress(fromMsg, fromMsgSigned, fromAddress) {
+    const recoveredAddress = await this.recoverAddress(fromMsg, fromMsgSigned);
+    return fromAddress === recoveredAddress;
   }
 
   async getNetworkId() {
@@ -84,6 +94,8 @@ class NoiaClient extends EventEmitter {
       });
     });
   }
+
+
 }
 
 const getIP = extIP({

@@ -2,12 +2,13 @@ const EventEmitter = require("events");
 const logger = require('../common/logger');
 const {readFile, writeFile} = require('../common/utils');
 const BusinessClient = require('./lib/client');
-const Master = require('./lib/master');
+const Wire = require('./lib/wire');
 
 // Node configuration
 const walletMnemonic = 'Heyo sing party done kid carry calm captain state purse weather ozone';
 const walletProvider = {
-  url: 'http://eth.oja.me:3304/dev',
+  // url: 'http://eth.oja.me:3304/dev',
+  url: 'http://eth.oja.me:3304/',
   apiKey: 'MK3M5ni1gTvArFO6FSJh9IVlb0s5BqN8CAFkGq0d'
 }
 const nodeConfig = {
@@ -50,7 +51,8 @@ class Business extends EventEmitter {
     // check what to do
     const args = process.argv.slice(2);
     if (!args.length) {
-      logger.info(`No action provided! Args: ${JSON.stringify(args)}`);
+      logger.info(`Running master! No action provided. Args: ${JSON.stringify(args)}`);
+      await this.runMaster(args.slice(1));
       return;
     }
     const action = args[0];
@@ -92,8 +94,8 @@ class Business extends EventEmitter {
   async runMaster() {
     const {ip, wsPort} = nodeConfig;
     console.log(`Master! nodeConfig: ${JSON.stringify(nodeConfig)}`);
-    this.master = new Master();
-    await this.master.start(ip, wsPort);
+    this.wire = new Wire(this.client);
+    await this.wire.listen(ip, wsPort);
   }
 
   async readAddress(addressFilePath) {
