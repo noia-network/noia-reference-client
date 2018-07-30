@@ -194,11 +194,6 @@ class NodeClient extends NoiaClient {
       });
     });
   }
-
-  async getBusinessClient(address) {
-    await this._ready();
-    return await sdk.getBusinessClient(address);
-  }
 }
 
 module.exports = NodeClient;

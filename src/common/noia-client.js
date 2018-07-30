@@ -95,7 +95,15 @@ class NoiaClient extends EventEmitter {
     });
   }
 
+  async getNodeClient(address) {
+    await this._ready();
+    return await sdk.getNodeClient(address);
+  }
 
+  async getBusinessClient(address) {
+    await this._ready();
+    return await sdk.getBusinessClient(address);
+  }
 }
 
 const getIP = extIP({

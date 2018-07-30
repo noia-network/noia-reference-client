@@ -69,10 +69,12 @@ class Node extends EventEmitter {
         await this.wire.connect(masterWsAddress);
 
         // validate the peers - master validates node and vice versa
-        const allValid = await this.wire.validatePeers(employer.address);
+        const allValid = await this.wire.validatePeers(noiaNodeAddress, employer.address);
 
-        //
-
+        // TODO! create and accept work order
+        if (allValid) {
+          logger.info(`Work order`);
+        }
         break;
       } catch (err) {
         if (!(err instanceof TimeoutError)) {

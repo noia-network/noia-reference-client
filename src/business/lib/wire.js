@@ -2,6 +2,7 @@ const EventEmitter = require("events");
 const http = require("http");
 const WebSocket = require("ws");
 const logger = require('../../common/logger');
+const {Handshake} = require('../../common/wire');
 
 class Wire extends EventEmitter {
   constructor(client) {
@@ -50,15 +51,39 @@ class Wire extends EventEmitter {
 
   async onHandshakeWithPeer(ws, fromMsg) {
     // validate client
-    const {msg: fromHsMsg, signedMsg: fromHsSignedMsg} = fromMsg;
+    const {msg: fromHsMsg, signedMsg: fromHsSignedMsg, nodeAddress} = fromMsg;
     const fromSignerAddress = await this.client.recoverAddress(fromHsMsg, fromHsSignedMsg);
-    logger.info(`[Master] From Signer address: ${fromSignerAddress}`);
+    logger.info(`[Master] From Signer address: ${fromSignerAddress}, nodeAddress: ${nodeAddress}`);
+
+    // validate the node
+    if (!nodeAddress) {
+      const msg = {
+        action: 'handshake',
+        status: Handshake.REFUSED,
+        reason: 'nodeAddress required for validation!'
+      };
+      ws.send(JSON.stringify(msg));
+      return;
+    }
+    const nodeClient = await this.client.getNodeClient(nodeAddress);
+    const nodeOwnerAddress = await nodeClient.getOwnerAddress();
+    logger.info(`[Master] Signer address: ${fromSignerAddress}, node owner address: ${nodeOwnerAddress}`);
+    if (nodeOwnerAddress !== fromSignerAddress) {
+      const msg = {
+        action: 'handshake',
+        status: Handshake.REFUSED,
+        reason: `node ownerAddress: ${nodeOwnerAddress} is not same as client signer address: ${fromSignerAddress}`
+      };
+      ws.send(JSON.stringify(msg));
+      return;
+    }
 
     // send back master validation request to client node
     const hsMsg = this.client.getHandshakeMessage();
     const signedMsg = await this.client.signMessage(hsMsg);
     const msg = {
       action: 'handshake',
+      status: Handshake.DONE,
       msg: hsMsg,
       signedMsg: signedMsg
     };

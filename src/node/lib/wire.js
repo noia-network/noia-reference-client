@@ -89,7 +89,7 @@ class Wire extends EventEmitter {
     this.emit("handshake", msg);
   }
 
-  async validatePeers() {
+  async validatePeers(nodeAddress, employerAddress) {
     await this._connected();
 
     // first, send node validation request to master
@@ -98,7 +98,8 @@ class Wire extends EventEmitter {
     const msg = {
       action: 'handshake',
       msg: hsMsg,
-      signedMsg: signedMsg
+      signedMsg: signedMsg,
+      nodeAddress: nodeAddress
     };
     this.conn.send(JSON.stringify(msg));
 
@@ -115,6 +116,13 @@ class Wire extends EventEmitter {
         const fromSignerAddress = await this.client.recoverAddress(fromHsMsg, fromHsSignedMsg);
         logger.info(`[Node] From Signer address: ${fromSignerAddress}`);
 
+        const employer = await this.client.getBusinessClient(employerAddress);
+        const employerOwnerAddress = await employer.getOwnerAddress();
+        logger.info(`[Node] Signer address: ${fromSignerAddress}, employer owner address: ${employerOwnerAddress}`);
+        if (employerOwnerAddress !== fromSignerAddress) {
+          const reason = `employer ownerAddress: ${employerOwnerAddress} is not same as peer signer address: ${fromSignerAddress}`;
+          return reject(reason);
+        }
         resolve(msg);
       });
     });
