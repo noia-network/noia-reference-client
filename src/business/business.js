@@ -7,8 +7,9 @@ const Wire = require('./lib/wire');
 // Node configuration
 const walletMnemonic = 'Heyo sing party done kid carry calm captain state purse weather ozone';
 const walletProvider = {
+  url: 'http://localhost:7545/',
   // url: 'http://eth.oja.me:3304/dev',
-  url: 'http://eth.oja.me:3304/',
+  // url: 'http://eth.oja.me:3304/',
   apiKey: 'MK3M5ni1gTvArFO6FSJh9IVlb0s5BqN8CAFkGq0d'
 }
 const nodeConfig = {
