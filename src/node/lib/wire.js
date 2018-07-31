@@ -82,8 +82,8 @@ class Wire extends EventEmitter {
 
   async onHandshakeWithPeer(msg) {
     const status = msg.status;
-    if (status === Handshake.REFUSED) {
-      // peer did not validate our signature that we sent
+    if (status === Handshake.REFUSED || status === Handshake.ERROR) {
+      // peer did not validate our signature that we sent or there was some error in validation
       return this.emit('handshake', new HandshakeError(msg.reason));
     }
     this.emit("handshake", msg);
@@ -112,18 +112,22 @@ class Wire extends EventEmitter {
         }
 
         // now, validate the master - a validation request it sent to us
-        const {msg: fromHsMsg, signedMsg: fromHsSignedMsg} = msg;
-        const fromSignerAddress = await this.client.recoverAddress(fromHsMsg, fromHsSignedMsg);
-        logger.info(`[Node] From Signer address: ${fromSignerAddress}`);
+        try {
+          const {msg: fromHsMsg, signedMsg: fromHsSignedMsg} = msg;
+          const fromSignerAddress = await this.client.recoverAddress(fromHsMsg, fromHsSignedMsg);
+          logger.info(`[Node] From Signer address: ${fromSignerAddress}`);
 
-        const employer = await this.client.getBusinessClient(employerAddress);
-        const employerOwnerAddress = await employer.getOwnerAddress();
-        logger.info(`[Node] Signer address: ${fromSignerAddress}, employer owner address: ${employerOwnerAddress}`);
-        if (employerOwnerAddress !== fromSignerAddress) {
-          const reason = `employer ownerAddress: ${employerOwnerAddress} is not same as peer signer address: ${fromSignerAddress}`;
-          return reject(reason);
+          const employer = await this.client.getBusinessClient(employerAddress);
+          const employerOwnerAddress = await employer.getOwnerAddress();
+          logger.info(`[Node] Signer address: ${fromSignerAddress}, employer owner address: ${employerOwnerAddress}`);
+          if (employerOwnerAddress !== fromSignerAddress) {
+            const reason = `employer ownerAddress: ${employerOwnerAddress} is not same as peer signer address: ${fromSignerAddress}`;
+            return reject(reason);
+          }
+          resolve(msg);
+        } catch (err) {
+          return reject(err);
         }
-        resolve(msg);
       });
     });
   }

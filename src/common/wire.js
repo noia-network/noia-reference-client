@@ -1,6 +1,7 @@
 const Handshake = {
+  DONE: 'DONE',
   REFUSED: 'REFUSED',
-  DONE: 'DONE'
+  ERROR: 'ERROR'
 }
 
 class HandshakeError extends Error {

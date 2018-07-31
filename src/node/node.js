@@ -32,10 +32,10 @@ class Node extends EventEmitter {
 
     // read the node aadress in Noia system - if not provided then a new Node is created automatically when first started
     const nodeAddressFilePath = `./${networkId}-node-address.txt`;
-    let noiaNodeAddress = await this.readAddress(nodeAddressFilePath);
+    let nodeAddress = await this.readAddress(nodeAddressFilePath);
 
     // register a node with Noia network
-    const registeredNode = await this.client.registerNode(noiaNodeAddress);
+    const registeredNode = await this.client.registerNode(nodeAddress);
     if (!registeredNode) {
       console.log(`Node not Registered in NOIA network`);
       return;
@@ -43,10 +43,10 @@ class Node extends EventEmitter {
     console.log(`Registered Node address: ${registeredNode.address}`);
 
     // save the node Noia address if different
-    if (registeredNode.address !== noiaNodeAddress) {
+    if (registeredNode.address !== nodeAddress) {
       await writeFile(nodeAddressFilePath, registeredNode.address);
     }
-    noiaNodeAddress = registeredNode.address;
+    nodeAddress = registeredNode.address;
 
     // TODO! how to stop here finding next job posts?
     // TODO! how to check if we have already processed next job post
@@ -69,13 +69,12 @@ class Node extends EventEmitter {
         await this.wire.connect(masterWsAddress);
 
         // validate the peers - master validates node and vice versa
-        const allValid = await this.wire.validatePeers(noiaNodeAddress, employer.address);
+        const allValid = await this.wire.validatePeers(nodeAddress, employer.address);
 
-        // TODO! create and accept work order
+        // TODO! Start a work order process with Master
         if (allValid) {
-          logger.info(`Work order`);
+          logger.info(`Start Work order process with Master!`);
         }
-        break;
       } catch (err) {
         if (!(err instanceof TimeoutError)) {
           // if not timeout then rethrow

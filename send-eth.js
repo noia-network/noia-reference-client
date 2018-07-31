@@ -4,6 +4,25 @@ const walletProvider = new Web3.providers.HttpProvider('http://eth.oja.me:3304/'
 const web3 = new Web3(walletProvider);
 
 async function main() {
+  // const receipt = await new Promise((resolve, reject) => {
+  //   web3.eth.getTransactionReceipt('0x84d8582b4f3b444db383606c49212a080c6701a047290e41d4d084512fc65796', (err, receipt) => {
+  //     if (err) {
+  //       return reject(err);
+  //     }
+  //     console.log(receipt);
+  //     resolve(receipt);
+  //   });
+  // });
+  // console.log(receipt);
+  // return;
+
+  // await new Promise((resolve, reject) => {
+  //   web3.eth.getBalance('0xd5d21069f55a35c5ff9086babc5e3ee1e5b7aeab', (err, balance) => {
+  //     console.log(balance.toString());
+  //   });
+  // });
+  // return;
+
   const from = web3.eth.accounts[0];
   // const to = '0x8517156cbdf189a1531b808d1069efc46af49e01'; // node wallet address
   const to = '0xd5d21069f55a35c5ff9086babc5e3ee1e5b7aeab'; // business wallet address

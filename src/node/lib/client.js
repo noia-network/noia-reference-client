@@ -136,61 +136,46 @@ class NodeClient extends NoiaClient {
     // resolve it when we find a suitable job post to work on
     const watcher = this.nextJob.watcher;
     return new Promise((resolve, reject) => {
-      watcher.on('job_post_added', (eventHandler) => {
-        // a function to exit and clear up the resources
-        let timeoutId;
-        let that = this;
-        function finish(result, error, pullNext) {
-          // clear the resources
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-            timeoutId = null;
-          }
-
-          // stop the logs processing loop
-          pullNext && pullNext(false);
-
-          // pause the watcher
-          that.nextJob.resume = watcher.stopWatchingJobPostAddedEvents();
-
-          // return result
-          if (error) {
-            return reject(error);
-          }
-          resolve(result);
+      // a function to exit and clear up the resources
+      let timeoutId;
+      let that = this;
+      function exit(result, error, complete) {
+        // clear the resources
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
         }
 
-        // start the timer
-        const timeout = 5 * 60 * 1000;  // 5 mins
-        timeoutId = setTimeout(() => {
-          finish(null, new TimeoutError(`Got timeout (${timeout / 1000}s) on finding the next job!`));
-        }, timeout);
+        // stop the logs processing loop
+        complete && complete();
+
+        // pause the watcher
+        that.nextJob.resume = watcher.stopWatchingJobPostAddedEvents();
+
+        // return result
+        if (error) {
+          return reject(error);
+        }
+        resolve(result);
+      }
+
+      // start the timer
+      const timeout = 5 * 60 * 1000;  // 5 mins
+      timeoutId = setTimeout(() => {
+        exit(null, new TimeoutError(`Got timeout (${timeout / 1000}s) on finding the next job!`));
+      }, timeout);
+
+      // start watching the new job post
+      watcher.on('job_post_added', async (jobPostAddress, complete) => {
+        console.log(`job_post_added`, jobPostAddress);
 
         // check if the job possible suits for us
-        // console.log(`job_post_added`, eventHandler);
-        if (typeof eventHandler !== 'function') {
-          return finish(null, new Error(`Got a job post handler that is not a function! ${eventHandler}`));
+        try {
+          const jobPost = await sdk.getJobPost(jobPostAddress);
+          return exit(jobPost, null, complete);
+        } catch (err) {
+          exit(null, err, complete);
         }
-        eventHandler(async (pullNext, jobPostAddress) => {
-          console.log(`job_post_added`, jobPostAddress);
-          try {
-            const jobPost = await sdk.getJobPost(jobPostAddress);
-
-            // if suitable job found then return it to the caller for processing
-            let suitableJobFound = true;
-            if (suitableJobFound) {
-              // it would be beneficial actually to pause listening and later resume because sdk has already
-              // where it keeps track transaction id's that has been emit'ed already to the users
-              // it would be be good that userland is keeping track of the got transaction ids also themselves
-
-              return finish(jobPost, null, pullNext);
-            }
-            // proceed if job post not found
-            pullNext(true);
-          } catch (err) {
-            finish(null, err, pullNext);
-          }
-        });
       });
     });
   }

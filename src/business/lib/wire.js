@@ -18,12 +18,17 @@ class Wire extends EventEmitter {
       console.log(`Wss connection! `);
       ws.on('message', async (data) => {
         logger.info(`Incoming message from client: `, data);
+        const json = JSON.parse(data);
         try {
-          const json = JSON.parse(data);
           await this._handleMessage(ws, json);
         } catch (err) {
           logger.error(`Error while processing incoming message!`, err);
           console.log(err);
+
+          // send back an error
+          json.status = Handshake.ERROR;
+          json.reason = err.message;
+          ws.send(JSON.stringify(json));
         }
       });
     });
