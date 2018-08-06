@@ -16,11 +16,12 @@ class Wire extends EventEmitter {
     // listen connection before starting a http server
     this.wss.on("connection", (ws, req) => {
       console.log(`Wss connection! `);
+      const ctx = {};
       ws.on('message', async (data) => {
         logger.info(`Incoming message from client: `, data);
         const json = JSON.parse(data);
         try {
-          await this._handleMessage(ws, json);
+          await this._handleMessage(ctx, ws, json);
         } catch (err) {
           logger.error(`Error while processing incoming message!`, err);
           console.log(err);
@@ -44,17 +45,21 @@ class Wire extends EventEmitter {
     });
   }
 
-  async _handleMessage(ws, msg) {
+  async _handleMessage(ctx, ws, msg) {
     const action = msg.action;
     switch (action) {
       case 'handshake': {
-        await this.onHandshakeWithPeer(ws, msg);
+        await this.onHandshakeWithPeer(ctx, ws, msg);
+        break;
+      }
+      case 'workorder': {
+        await this.onWorkOrder(ctx, ws, msg);
         break;
       }
     }
   }
 
-  async onHandshakeWithPeer(ws, fromMsg) {
+  async onHandshakeWithPeer(ctx, ws, fromMsg) {
     // validate client
     const {msg: fromHsMsg, signedMsg: fromHsSignedMsg, nodeAddress} = fromMsg;
     const fromSignerAddress = await this.client.recoverAddress(fromHsMsg, fromHsSignedMsg);
@@ -93,6 +98,44 @@ class Wire extends EventEmitter {
       signedMsg: signedMsg
     };
     ws.send(JSON.stringify(msg));
+
+    // save the node address with context
+    ctx.nodeAddress = nodeAddress;
+    ctx.nodeOwnerAddress = nodeOwnerAddress;
+  }
+
+  async onWorkOrder(ctx, ws, fromMsg) {
+    const method = fromMsg.method;
+    switch (method) {
+      case "get": {
+        await this.sendWorkOrder(ctx, ws, fromMsg);
+        break;
+      }
+      case "accept": {
+        await this.acceptWorkOrder(ctx, ws, fromMsg);
+        break;
+      }
+    }
+  }
+
+  async sendWorkOrder(ctx, ws, fromMsg) {
+    // check if we already have ongoing work order for the job, if not then create a new one
+    const jobPostAddress = fromMsg.jobPost;
+    const workerAddress = ctx.nodeAddress;
+    const jobPost = await this.client.getJobPost(jobPostAddress);
+    await jobPost.contract.getProposedWorkOrders.call(workerAddress);
+
+    // send back the workorder address
+    const msg = {
+      action: 'workorder',
+      method: 'get',
+      address: "0xaasd"
+    };
+    ws.send(JSON.stringify(msg));
+  }
+
+  async acceptWorkOrder(ctx, ws, fromMsg) {
+
   }
 
   async stop() {

@@ -7,9 +7,9 @@ const Wire = require('./lib/wire');
 // Node configuration
 const walletMnemonic = 'ill song party come kid carry calm captain state purse weather ozone';
 const walletProvider = {
-  url: 'http://localhost:7545/',
+  // url: 'http://localhost:7545/',
   // url: 'http://eth.oja.me:3304/dev',
-  // url: 'http://eth.oja.me:3304/',
+  url: 'http://eth.oja.me:3304/',
   apiKey: 'MK3M5ni1gTvArFO6FSJh9IVlb0s5BqN8CAFkGq0d'
 }
 const nodeConfig = {
@@ -75,6 +75,28 @@ class Node extends EventEmitter {
         // TODO! Start a work order process with Master
         if (allValid) {
           logger.info(`Start Work order process with Master!`);
+          // Question: do business need to call fund() after both are accepted the work contract or before that?
+          // Question: when can business cancel worker withdraw()
+
+          // get funded work order
+          const workOrder = await this.wire.getWorkOrder(jobPost.address);
+
+          // check if it is ok to accept this work order
+          // check that it is funded and for how long should I work for it?
+          const totalFunded = await workOrder.contract.totalFunds().call();
+          const totalVested = await workOrder.contract.totalVested().call();
+          const ok = totalFunded > 0 && totalVested > 0;
+          if (ok) {
+            await this.wire.acceptWorkOrder(workOrder.address);
+
+            // check or wait when business has accepted also the work order
+
+            // do the work for the period until.
+            // then ask to release the tokens for us
+
+            //  check if there are more vested work for us, if yes then do the work, otherwise stop working
+
+          }
         }
       } catch (err) {
         if (!(err instanceof TimeoutError)) {

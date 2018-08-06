@@ -104,6 +104,10 @@ class NoiaClient extends EventEmitter {
     await this._ready();
     return await sdk.getBusinessClient(address);
   }
+
+  async getJobPost(jobPostAddress) {
+    return await sdk.getJobPost(jobPostAddress);
+  }
 }
 
 const getIP = extIP({

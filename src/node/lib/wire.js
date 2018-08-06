@@ -77,6 +77,10 @@ class Wire extends EventEmitter {
         await this.onHandshakeWithPeer(msg);
         break;
       }
+      case 'workorder': {
+        await this.onWorkOrder(msg);
+        break;
+      }
     }
   }
 
@@ -87,6 +91,10 @@ class Wire extends EventEmitter {
       return this.emit('handshake', new HandshakeError(msg.reason));
     }
     this.emit("handshake", msg);
+  }
+
+  async onWorkOrder(msg) {
+    this.emit(`workorder_${msg.method}`, msg);
   }
 
   async validatePeers(nodeAddress, employerAddress) {
@@ -124,6 +132,74 @@ class Wire extends EventEmitter {
             const reason = `employer ownerAddress: ${employerOwnerAddress} is not same as peer signer address: ${fromSignerAddress}`;
             return reject(reason);
           }
+          resolve(msg);
+        } catch (err) {
+          return reject(err);
+        }
+      });
+    });
+  }
+
+  async getWorkOrder(jobPostAddress) {
+    await this._connected();
+
+    // first, send node validation request to master
+    const msg = {
+      action: 'workorder',
+      method: "get",
+      jobPost: jobPostAddress
+    };
+    this.conn.send(JSON.stringify(msg));
+
+    // wait for business to return us the work order for the job post
+    return new Promise((resolve, reject) => {
+      this.once("workorder_get", async (msg) => {
+        // check if master failed validating us - a node
+        if (msg instanceof WireError) {
+          return reject(msg.message);
+        }
+        try {
+          const {address: workOrderAddress} = msg;
+          logger.info(`[Node] Work order address: ${workOrderAddress}`);
+
+          // TODO! get the work order and return it
+          const workOrder = null;
+
+          resolve(workOrder);
+        } catch (err) {
+          return reject(err);
+        }
+      });
+    });
+  }
+
+  async acceptWorkOrder(workOrderAddress) {
+    await this._connected();
+
+    // first, send node validation request to master
+    const msg = {
+      action: 'workorder',
+      method: "accept",
+      workOrder: workOrderAddress,
+      nonce: 0
+    };
+    // bytes memory msgPacked = abi.encodePacked(address(this), _accept, _nonce);
+    // web3.eth.abi.encodeParameters(['uint256','bool', 'uint256'], ['2345675643', 'Hello!%']);
+    msg.sig = await this.client.signMessage(hsMsg);
+    this.conn.send(JSON.stringify(msg));
+
+    // wait for master validation result
+    return new Promise((resolve, reject) => {
+      this.once("workorder_accept", async (msg) => {
+        // check if master failed validating us - a node
+        if (msg instanceof WireError) {
+          return reject(msg.message);
+        }
+
+        // now, validate the master - a validation request it sent to us
+        try {
+          const {status} = msg;
+          logger.info(`[Node] Accept status: ${status}`);
           resolve(msg);
         } catch (err) {
           return reject(err);

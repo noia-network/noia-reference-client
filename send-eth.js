@@ -1,7 +1,7 @@
 const Web3 = require('web3');
 
-// const walletProvider = new Web3.providers.HttpProvider('http://eth.oja.me:3304/');
-const walletProvider = new Web3.providers.HttpProvider('http://localhost:7545/');
+const walletProvider = new Web3.providers.HttpProvider('http://eth.oja.me:3304/');
+// const walletProvider = new Web3.providers.HttpProvider('http://localhost:7545/');
 const web3 = new Web3(walletProvider);
 
 async function main() {
@@ -23,6 +23,10 @@ async function main() {
   //   });
   // });
   // return;
+
+  // const temp = web3.toAscii("0x5b37e1506170706c69636174696f6e2f6a736f6e000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000002b7b226e6f64655f6970223a223132372e302e302e31222c226e6f64655f77735f706f7274223a373637377d000000000000000000000000000000000000000000")
+  // console.log(temp)
+  // return
 
   const from = web3.eth.accounts[0];
   // const to = '0x8517156cbdf189a1531b808d1069efc46af49e01'; // node wallet address
