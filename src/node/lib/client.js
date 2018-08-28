@@ -169,7 +169,8 @@ class NodeClient extends NoiaClient {
       watcher.on('job_post_added', async (jobPostAddress, complete) => {
         console.log(`job_post_added`, jobPostAddress);
 
-        // check if the job possible suits for us
+        // Check if the job suits for our requirements
+        // 1. Check if job post is funded and for how much and a period for us to be interesting
         try {
           const jobPost = await sdk.getJobPost(jobPostAddress);
           return exit(jobPost, null, complete);

@@ -17,11 +17,12 @@
   },
   "homepage": "https://github.com/jaanek/noia-reference-client#readme",
   "dependencies": {
-    "@noia-network/governance": "git+ssh://noianetwork@vs-ssh.visualstudio.com:22/NOIA%20Project/_ssh/noia-governance#jaanek",
+    "@noia-network/governance": "git+ssh://noianetwork@vs-ssh.visualstudio.com:22/NOIA%20Project/_ssh/noia-governance#dev",
     "@noia-network/protocol": "^0.2.2",
     "external-ip": "^2.0.3",
     "randombytes": "^2.0.6",
     "web3-hdwallet-provider": "^0.1.1",
+    "web3-utils": "^1.0.0-beta.35",
     "winston": "^3.0.0",
     "ws": "^6.0.0"
   }
