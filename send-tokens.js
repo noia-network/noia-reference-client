@@ -10,19 +10,18 @@ const web3 = new Web3(walletProvider);
 
 async function main() {
 
-  // get the token NoiaNetwork address from json
+  // get the contract abi-s and deployed addresses
   const NOIANetworkJson = JSON.parse(await readFile('./node_modules/@noia-network/governance/sdk/contracts/NoiaNetwork.json'));
   const NOIATestTokenJson = JSON.parse(await readFile('./node_modules/@noia-network/governance/sdk/contracts/NOIATestToken.json'));
   // console.log(NOIANetworkJson);
 
-  // Get raw binary transaction for creating the contract
+  // get noia instance
   const noiaAddress = NOIANetworkJson.networks["5777"].address;
   console.log(`NOIA local network address: ${noiaAddress}`);
   const noia = web3.eth.contract(NOIANetworkJson.abi).at(noiaAddress);
   // console.log(noia);
-  // noiaNetwork.multiply.sendTransaction(6, {from: "0xeb85a5557e5bdc18ee1934a89d8bb402398ee26a"})
 
-  // get the token contract
+  // get the token instance
   const tokenAddress = noia.tokenContract.call();
   console.log(`token contract address: ${tokenAddress}`);
   const token = web3.eth.contract(NOIATestTokenJson.abi).at(tokenAddress);
