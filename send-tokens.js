@@ -22,7 +22,7 @@ async function main() {
   // console.log(noia);
 
   // get the token instance
-  const tokenAddress = noia.tokenContract.call();
+  const tokenAddress = await noia.tokenContract.call();
   console.log(`token contract address: ${tokenAddress}`);
   const token = web3.eth.contract(NOIATestTokenJson.abi).at(tokenAddress);
   // console.log(token);
@@ -31,7 +31,7 @@ async function main() {
   const from = web3.eth.accounts[0];
   const to = '0x8517156cbdf189a1531b808d1069efc46af49e01';
   const amount = 500;
-  const transactionHash = token.createTokens.sendTransaction(to, amount, {from: from});
+  const transactionHash = await token.createTokens.sendTransaction(to, amount, {from: from});
   console.log(`Created ${amount} NOIA tokens for: ${to}. Transaction hash: ${transactionHash}`);
 
   // checking the balance
