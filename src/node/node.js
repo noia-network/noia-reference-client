@@ -7,9 +7,9 @@ const Wire = require('./lib/wire');
 // Node configuration
 const walletMnemonic = 'ill song party come kid carry calm captain state purse weather ozone';
 const walletProvider = {
-  // url: 'http://localhost:7545/',
+  url: 'http://localhost:7545/',
   // url: 'http://eth.oja.me:3304/dev',
-  url: 'http://eth.oja.me:3304/',
+  // url: 'http://eth.oja.me:3304/',
   apiKey: 'MK3M5ni1gTvArFO6FSJh9IVlb0s5BqN8CAFkGq0d'
 }
 const nodeConfig = {
@@ -28,26 +28,32 @@ class Node extends EventEmitter {
   async start() {
     logger.info(`Starting node client!`);
 
-    // read the network id
-    const networkId = await this.client.getNetworkId();
-
     // read the node aadress in Noia system - if not provided then a new Node is created automatically when first started
-    const nodeAddressFilePath = `./${networkId}-node-address.txt`;
-    let nodeAddress = await this.readAddress(nodeAddressFilePath);
+    const createNodeClient = false;
+    if (createNodeClient) {
+      // read the network id
+      const networkId = await this.client.getNetworkId();
 
-    // register a node with Noia network
-    const registeredNode = await this.client.registerNode(nodeAddress);
-    if (!registeredNode) {
-      console.log(`Node not Registered in NOIA network`);
-      return;
-    }
-    console.log(`Registered Node address: ${registeredNode.address}`);
+      const nodeAddressFilePath = `./${networkId}-node-address.txt`;
+      let nodeAddress = await this.readAddress(nodeAddressFilePath);
 
-    // save the node Noia address if different
-    if (registeredNode.address !== nodeAddress) {
-      await writeFile(nodeAddressFilePath, registeredNode.address);
+      // register a node with Noia network
+      const registeredNode = await this.client.registerNode(nodeAddress);
+      if (!registeredNode) {
+        console.log(`Node not Registered in NOIA network`);
+        return;
+      }
+      console.log(`Registered Node address: ${registeredNode.address}`);
+
+      // save the node Noia address if different
+      if (registeredNode.address !== nodeAddress) {
+        await writeFile(nodeAddressFilePath, registeredNode.address);
+      }
+      nodeAddress = registeredNode.address;
     }
-    nodeAddress = registeredNode.address;
+
+    const nodeOwnerAddress = await this.client.getOwnerAddress();
+    console.log(`Node wallet owner address: ${nodeOwnerAddress}`);
 
     // TODO! how to stop here finding next job posts?
     // TODO! how to check if we have already processed a job post
@@ -70,7 +76,7 @@ class Node extends EventEmitter {
         await this.wire.connect(masterWsAddress);
 
         // validate the peers - master validates node and vice versa
-        const allValid = await this.wire.validatePeers(nodeAddress, employer.address);
+        const allValid = await this.wire.validatePeers(nodeOwnerAddress, employer.address);
 
         // TODO! Start a work order process with Master
         if (allValid) {

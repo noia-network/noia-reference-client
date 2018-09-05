@@ -52,6 +52,12 @@ class NoiaClient extends EventEmitter {
     });
   }
 
+  async getOwnerAddress() {
+    // wait till governance layer is ready
+    await this._ready();
+    return this.walletAddress;
+  }
+
   async signMessage(msg) {
     await this._ready();
     const client = await sdk.getBaseClient();

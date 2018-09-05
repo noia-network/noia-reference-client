@@ -61,22 +61,22 @@ class Wire extends EventEmitter {
 
   async onHandshakeWithPeer(ctx, ws, fromMsg) {
     // validate client
-    const {msg: fromHsMsg, signedMsg: fromHsSignedMsg, nodeAddress} = fromMsg;
+    const {msg: fromHsMsg, signedMsg: fromHsSignedMsg, nodeOwnerAddress} = fromMsg;
     const fromSignerAddress = await this.client.recoverAddress(fromHsMsg, fromHsSignedMsg);
-    logger.info(`[Master] From Signer address: ${fromSignerAddress}, nodeAddress: ${nodeAddress}`);
+    logger.info(`[Master] From Signer address: ${fromSignerAddress}, nodeOwnerAddress: ${nodeOwnerAddress}`);
 
     // validate the node
-    if (!nodeAddress) {
+    if (!nodeOwnerAddress) {
       const msg = {
         action: 'handshake',
         status: Handshake.REFUSED,
-        reason: 'nodeAddress required for validation!'
+        reason: 'nodeOwnerAddress required for validation!'
       };
       ws.send(JSON.stringify(msg));
       return;
     }
-    const nodeClient = await this.client.getNodeClient(nodeAddress);
-    const nodeOwnerAddress = await nodeClient.getOwnerAddress();
+    // const nodeClient = await this.client.getNodeClient(nodeAddress);
+    // const nodeOwnerAddress = await nodeClient.getOwnerAddress();
     logger.info(`[Master] Signer address: ${fromSignerAddress}, node owner address: ${nodeOwnerAddress}`);
     if (nodeOwnerAddress !== fromSignerAddress) {
       const msg = {
@@ -100,7 +100,7 @@ class Wire extends EventEmitter {
     ws.send(JSON.stringify(msg));
 
     // save the node address with context
-    ctx.nodeAddress = nodeAddress;
+    // ctx.nodeAddress = nodeAddress;
     ctx.nodeOwnerAddress = nodeOwnerAddress;
   }
 
@@ -121,9 +121,10 @@ class Wire extends EventEmitter {
   async sendWorkOrder(ctx, ws, fromMsg) {
     // check if we already have ongoing work order for the job, if not then create a new one
     const jobPostAddress = fromMsg.jobPost;
-    const workerAddress = ctx.nodeAddress;
+    // const workerAddress = ctx.nodeAddress;
+    const nodeOwnerAddress = ctx.nodeOwnerAddress;
     const jobPost = await this.client.getJobPost(jobPostAddress);
-    await jobPost.contract.getProposedWorkOrders.call(workerAddress);
+    await jobPost.contract.getProposedWorkOrders.call(nodeOwnerAddress);
 
     // send back the workorder address
     const msg = {

@@ -102,6 +102,9 @@ class NodeClient extends NoiaClient {
 
   // returns next suitable job post
   async findNextJob() {
+    // wait till governance layer is ready
+    await this._ready();
+
     // get a fresh new base client to pull in the next jobs
     if (!this.nextJob) {
       // create a new watcher
@@ -166,8 +169,8 @@ class NodeClient extends NoiaClient {
       }, timeout);
 
       // start watching the new job post
-      watcher.on('job_post_added', async (jobPostAddress, complete) => {
-        console.log(`job_post_added`, jobPostAddress);
+      watcher.on('job_post_added', async (jobPostAddress, logBlockNumber, logIndex, complete) => {
+        console.log(`job_post_added`, jobPostAddress, logBlockNumber, logIndex);
 
         // Check if the job suits for our requirements
         // 1. Check if job post is funded and for how much and a period for us to be interesting

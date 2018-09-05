@@ -17,8 +17,9 @@
   },
   "homepage": "https://github.com/jaanek/noia-reference-client#readme",
   "dependencies": {
-    "@noia-network/governance": "git+ssh://noianetwork@vs-ssh.visualstudio.com:22/NOIA%20Project/_ssh/noia-governance#dev",
+    "@noia-network/governance": "file:../noia-governance",
     "@noia-network/protocol": "^0.2.2",
+    "ethereum-tx-decoder": "^2.0.1",
     "external-ip": "^2.0.3",
     "randombytes": "^2.0.6",
     "web3-hdwallet-provider": "^0.1.1",

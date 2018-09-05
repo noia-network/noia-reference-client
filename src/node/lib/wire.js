@@ -97,7 +97,7 @@ class Wire extends EventEmitter {
     this.emit(`workorder_${msg.method}`, msg);
   }
 
-  async validatePeers(nodeAddress, employerAddress) {
+  async validatePeers(nodeOwnerAddress, employerAddress) {
     await this._connected();
 
     // first, send node validation request to master
@@ -107,7 +107,7 @@ class Wire extends EventEmitter {
       action: 'handshake',
       msg: hsMsg,
       signedMsg: signedMsg,
-      nodeAddress: nodeAddress
+      nodeOwnerAddress: nodeOwnerAddress
     };
     this.conn.send(JSON.stringify(msg));
 
@@ -155,9 +155,9 @@ class Wire extends EventEmitter {
     return new Promise((resolve, reject) => {
       this.once("workorder_get", async (msg) => {
         // check if master failed validating us - a node
-        if (msg instanceof WireError) {
-          return reject(msg.message);
-        }
+        // if (msg instanceof WireError) {
+        //   return reject(msg.message);
+        // }
         try {
           const {address: workOrderAddress} = msg;
           logger.info(`[Node] Work order address: ${workOrderAddress}`);
@@ -192,9 +192,9 @@ class Wire extends EventEmitter {
     return new Promise((resolve, reject) => {
       this.once("workorder_accept", async (msg) => {
         // check if master failed validating us - a node
-        if (msg instanceof WireError) {
-          return reject(msg.message);
-        }
+        // if (msg instanceof WireError) {
+        //   return reject(msg.message);
+        // }
 
         // now, validate the master - a validation request it sent to us
         try {

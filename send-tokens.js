@@ -25,7 +25,7 @@ async function main() {
   const tokenAddress = await noia.tokenContract.call();
   console.log(`token contract address: ${tokenAddress}`);
   const token = web3.eth.contract(NOIATestTokenJson.abi).at(tokenAddress);
-  // console.log(token);
+  console.log(token);
 
   // send tokens
   const from = web3.eth.accounts[0];
